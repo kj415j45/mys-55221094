@@ -16,13 +16,13 @@ The project includes a Docker Compose configuration for running Elasticsearch an
 
 ```bash
 # Start Elasticsearch and Kibana
-docker-compose up -d
+docker compose up -d
 
 # Check that services are running
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Accessing Services
@@ -60,10 +60,10 @@ MAX_RUNTIME=300 MAX_ITERATIONS=100 LOG_LEVEL=info node dist/index.js [checkpoint
 
 ```bash
 # Stop services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (WARNING: This will delete all data)
-docker-compose down -v
+docker compose down -v
 ```
 
 ## GitHub Actions
