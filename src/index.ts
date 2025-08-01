@@ -7,14 +7,42 @@ import { delay } from "./utils";
 const targetTopic = "55221094";
 const checkpoint = process.argv[2] || "";
 const cooldown = 100;
+const maxRuntime = parseInt(process.env.MAX_RUNTIME || "3600"); // Default 1 hour in seconds
+const maxIterations = parseInt(process.env.MAX_ITERATIONS || "10000"); // Default 10k iterations
 
 /// Code
 const log = taggedLogger("Main");
 
 async function main() {
+  const startTime = Date.now();
   const datas: Map<string, any> = new Map();
   let count = 0;
+  let iterationCount = 0;
+  
+  // Ensure data directories exist
+  if (!fs.existsSync('data')) {
+    fs.mkdirSync('data');
+  }
+  if (!fs.existsSync('data/replies')) {
+    fs.mkdirSync('data/replies');
+  }
+  
+  log.info(`Starting data collection with limits: ${maxRuntime}s runtime, ${maxIterations} iterations`);
+  
   for await (const reply of iterateReplies(targetTopic, checkpoint)) {
+    // Check runtime limit
+    const elapsedTime = (Date.now() - startTime) / 1000;
+    if (elapsedTime > maxRuntime) {
+      log.warn(`Runtime limit (${maxRuntime}s) reached. Stopping execution.`);
+      break;
+    }
+    
+    // Check iteration limit
+    if (iterationCount >= maxIterations) {
+      log.warn(`Iteration limit (${maxIterations}) reached. Stopping execution.`);
+      break;
+    }
+    
     const replyBody = reply.reply;
     const replyUser = reply.user;
 
@@ -37,34 +65,41 @@ async function main() {
       } [${data.r_time}] ${data.r_deleted ? "(deleted)" : ""}`
     );
     count++;
+    iterationCount++;
+    
     if (datas.size >= 1000) {
       log.info(`Saving ${datas.size} data...`);
       const floors = Array.from(datas.keys()).map(Number);
       const floor_low = Math.min(...floors);
       const floor_high = Math.max(...floors);
-      const saveName = `data/data_${floor_low}-${floor_high}.json`;
+      const saveName = `data/replies/data_${floor_low}-${floor_high}.json`;
       fs.writeFileSync(
         saveName,
         JSON.stringify(Array.from(datas.values()), null, 2)
       );
       log.info(`Saved to ${saveName}`);
 
-      log.info(`Saved ${datas.size} data. Iterated ${count} data.`);
+      log.info(`Saved ${datas.size} data. Iterated ${count} data. Runtime: ${Math.round((Date.now() - startTime) / 1000)}s`);
       datas.clear();
     }
   }
 
-  log.info(`Saving ${datas.size} data...`);
-  const floors = Array.from(datas.keys()).map(Number);
-  const floor_low = Math.min(...floors);
-  const floor_high = Math.max(...floors);
-  const saveName = `data/data_${floor_low}-${floor_high}.json`;
-  fs.writeFileSync(
-    saveName,
-    JSON.stringify(Array.from(datas.values()), null, 2)
-  );
-
-  datas.clear();
+  if (datas.size > 0) {
+    log.info(`Saving final ${datas.size} data...`);
+    const floors = Array.from(datas.keys()).map(Number);
+    const floor_low = Math.min(...floors);
+    const floor_high = Math.max(...floors);
+    const saveName = `data/replies/data_${floor_low}-${floor_high}.json`;
+    fs.writeFileSync(
+      saveName,
+      JSON.stringify(Array.from(datas.values()), null, 2)
+    );
+    log.info(`Saved to ${saveName}`);
+    datas.clear();
+  }
+  
+  const totalRuntime = Math.round((Date.now() - startTime) / 1000);
+  log.info(`Data collection completed. Total runtime: ${totalRuntime}s, Iterations: ${iterationCount}, Records: ${count}`);
 }
 
 async function* iterateReplies(topicId: string, checkpoint = "") {

@@ -1,0 +1,114 @@
+name: MYS Data Collection
+
+on:
+  workflow_dispatch:
+    inputs:
+      checkpoint:
+        description: 'Starting checkpoint (last_id) for data collection'
+        required: false
+        default: ''
+        type: string
+      max_runtime:
+        description: 'Maximum runtime in seconds'
+        required: false
+        default: '3600'
+        type: string
+      max_iterations:
+        description: 'Maximum number of iterations'
+        required: false
+        default: '10000'
+        type: string
+
+jobs:
+  collect-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Compile TypeScript
+      run: npx tsc
+      
+    - name: Run data collection
+      env:
+        MAX_RUNTIME: ${{ github.event.inputs.max_runtime }}
+        MAX_ITERATIONS: ${{ github.event.inputs.max_iterations }}
+        LOG_LEVEL: info
+      run: node dist/index.js ${{ github.event.inputs.checkpoint }}
+      
+    - name: Check for new data files
+      id: check_files
+      run: |
+        if [ -n "$(git status --porcelain data/)" ]; then
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "New data files detected"
+        else
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No new data files"
+        fi
+        
+    - name: Configure Git
+      if: steps.check_files.outputs.changes == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+    - name: Commit new data
+      if: steps.check_files.outputs.changes == 'true'
+      run: |
+        git add data/
+        git add logs/
+        timestamp=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        git commit -m "Data collection run - $timestamp
+
+        Runtime: ${{ github.event.inputs.max_runtime }}s
+        Max iterations: ${{ github.event.inputs.max_iterations }}
+        Checkpoint: ${{ github.event.inputs.checkpoint }}
+        "
+        
+    - name: Create Pull Request
+      if: steps.check_files.outputs.changes == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: data-collection-${{ github.run_number }}
+        title: "Data Collection Run #${{ github.run_number }}"
+        body: |
+          ## Data Collection Results
+          
+          This PR contains data collected from the MYS forum post.
+          
+          **Run Configuration:**
+          - Runtime limit: ${{ github.event.inputs.max_runtime }} seconds
+          - Iteration limit: ${{ github.event.inputs.max_iterations }}
+          - Starting checkpoint: ${{ github.event.inputs.checkpoint || 'none' }}
+          - Workflow run: #${{ github.run_number }}
+          
+          **Files Changed:**
+          - New data files in `data/replies/` directory
+          - Updated log files in `logs/` directory
+          
+          Please review the collected data before merging.
+        labels: |
+          data-collection
+          automated
+        
+    - name: Upload artifacts
+      if: steps.check_files.outputs.changes == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: collected-data-${{ github.run_number }}
+        path: |
+          data/replies/*.json
+          logs/main.log
+        retention-days: 30
