@@ -19,6 +19,10 @@ on:
         default: '10000'
         type: string
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   collect-data:
     runs-on: ubuntu-latest
@@ -45,6 +49,9 @@ jobs:
         MAX_ITERATIONS: ${{ github.event.inputs.max_iterations }}
         LOG_LEVEL: info
       run: node dist/index.js ${{ github.event.inputs.checkpoint }}
+      
+    - name: Organize data files
+      run: node dist/organize-data.js data/replies
       
     - name: Check for new data files
       id: check_files
@@ -75,8 +82,20 @@ jobs:
         Checkpoint: ${{ github.event.inputs.checkpoint }}
         "
         
+    - name: Upload artifacts
+      if: steps.check_files.outputs.changes == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: collected-data-${{ github.run_number }}
+        path: |
+          data/replies/*.json
+          data/replies/backup/*.json
+        retention-days: 30
+        
     - name: Create Pull Request
       if: steps.check_files.outputs.changes == 'true'
+      id: create_pr
+      continue-on-error: true
       uses: peter-evans/create-pull-request@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -95,19 +114,17 @@ jobs:
           
           **Files Changed:**
           - New data files in `data/replies/` directory
-          - Updated log files in `logs/` directory
+          - Data organized and deduplicated
+          - Original files backed up to `data/replies/backup/`
           
           Please review the collected data before merging.
         labels: |
           data-collection
           automated
-        
-    - name: Upload artifacts
-      if: steps.check_files.outputs.changes == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: collected-data-${{ github.run_number }}
-        path: |
-          data/replies/*.json
-          logs/main.log
-        retention-days: 30
+          
+    - name: Handle PR creation failure
+      if: steps.check_files.outputs.changes == 'true' && steps.create_pr.outcome == 'failure'
+      run: |
+        echo "::warning::Failed to create pull request. This may be due to repository permissions."
+        echo "::notice::The data has been collected and committed. Please create a pull request manually if needed."
+        echo "::notice::Artifacts have been uploaded for download."
