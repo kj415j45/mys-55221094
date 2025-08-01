@@ -8,16 +8,13 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=true
-      - xpack.security.enrollment.enabled=false
-      - ELASTIC_PASSWORD=changeme
+      - xpack.security.enabled=false
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - ./dev-data/elasticsearch:/usr/share/elasticsearch/data
-      - ./dev-config/elasticsearch:/usr/share/elasticsearch/config
+      - elasticsearch-data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -32,8 +29,7 @@ services:
       - SERVER_NAME=kibana
       - SERVER_HOST=0.0.0.0
     volumes:
-      - ./dev-data/kibana:/usr/share/kibana/data
-      - ./dev-config/kibana:/usr/share/kibana/config
+      - kibana-data:/usr/share/kibana/data
     ports:
       - "5601:5601"
     networks:
