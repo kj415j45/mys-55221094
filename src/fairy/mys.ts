@@ -42,6 +42,10 @@ export class MYS {
             const res = await axios.request({
                 url,
                 method,
+                headers: {
+                    'Referer': 'https://www.miyoushe.com/',
+                    'User-Agent': 'Fairy/0.0.1'
+                }
             });
             const response = res.data;
             if(response.retcode !== 0) {

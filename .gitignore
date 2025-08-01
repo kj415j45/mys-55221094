@@ -4,3 +4,14 @@
 # Node
 node_modules/
 dist/
+
+# Development environment data and config
+dev-data/
+dev-config/
+
+# Logs (included in main logs/ directory)
+logs/
+
+# Temporary files
+/tmp/
+*.tmp

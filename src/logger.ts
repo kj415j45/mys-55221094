@@ -1,4 +1,10 @@
 import { createLogger, format, transports } from "winston";
+import fs from "node:fs";
+
+// Ensure logs directory exists
+if (!fs.existsSync('logs')) {
+  fs.mkdirSync('logs');
+}
 
 const timezoned = () => {
   return new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" });
