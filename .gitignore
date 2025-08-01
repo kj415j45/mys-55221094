@@ -5,9 +5,6 @@
 node_modules/
 dist/
 
-# Data collection output
-data/
-
 # Development environment data and config
 dev-data/
 dev-config/
