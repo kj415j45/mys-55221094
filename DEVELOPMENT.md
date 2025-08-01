@@ -1,77 +1,81 @@
-# Development Environment Setup
+# 开发环境配置
 
-This document describes how to set up the development environment for the MYS project.
+本文档介绍如何设置 MYS 项目的开发环境。
 
-## Prerequisites
+## 前置条件
 
-- Docker and Docker Compose
+- Docker 和 Docker Compose
 - Node.js 20+
 - npm
 
-## Development Environment
+## 开发环境
 
-The project includes a Docker Compose configuration for running Elasticsearch and Kibana for development and testing.
+该项目包含用于开发和测试的 Docker Compose 配置，用于运行 Elasticsearch 和 Kibana。
 
-### Starting the Development Environment
+### 启动开发环境
 
 ```bash
-# Start Elasticsearch and Kibana
+# 启动 Elasticsearch 和 Kibana
 docker compose up -d
 
-# Check that services are running
+# 检查服务是否运行
 docker compose ps
 
-# View logs
+# 查看日志
 docker compose logs -f
 ```
 
-### Accessing Services
+### 访问服务
 
 - **Elasticsearch**: http://localhost:9200
 - **Kibana**: http://localhost:5601
 
-### Data and Configuration
+默认认证信息：
+- 用户名: `elastic`
+- 密码: `changeme`
 
-- Elasticsearch data: `./dev-data/elasticsearch/`
-- Kibana data: `./dev-data/kibana/`
-- Elasticsearch config: `./dev-config/elasticsearch/`
-- Kibana config: `./dev-config/kibana/`
+### 数据和配置
 
-### Running Data Collection
+- Elasticsearch 数据: `./dev-data/elasticsearch/`
+- Kibana 数据: `./dev-data/kibana/`
+- Elasticsearch 配置: `./dev-config/elasticsearch/`
+- Kibana 配置: `./dev-config/kibana/`
+
+### 运行数据收集
 
 ```bash
-# Install dependencies
+# 安装依赖
 npm install
 
-# Compile TypeScript
+# 编译 TypeScript
 npx tsc
 
-# Run data collection with limits
+# 运行数据收集（带限制）
 MAX_RUNTIME=300 MAX_ITERATIONS=100 LOG_LEVEL=info node dist/index.js [checkpoint]
 ```
 
-### Environment Variables
+### 环境变量
 
-- `MAX_RUNTIME`: Maximum runtime in seconds (default: 3600)
-- `MAX_ITERATIONS`: Maximum number of iterations (default: 10000)
-- `LOG_LEVEL`: Logging level (default: info)
+- `MAX_RUNTIME`: 最大运行时间（秒，默认: 3600）
+- `MAX_ITERATIONS`: 最大迭代次数（默认: 10000）
+- `LOG_LEVEL`: 日志级别（默认: info）
 
-### Stopping the Development Environment
+### 停止开发环境
 
 ```bash
-# Stop services
+# 停止服务
 docker compose down
 
-# Stop and remove volumes (WARNING: This will delete all data)
+# 停止并删除数据卷（警告：这将删除所有数据）
 docker compose down -v
 ```
 
 ## GitHub Actions
 
-The project includes a GitHub Action workflow for manual data collection runs. The workflow can be triggered manually from the Actions tab with configurable parameters:
+该项目包含用于手动数据收集运行的 GitHub Action 工作流。可以从 Actions 选项卡手动触发工作流，并配置以下参数：
 
-- Starting checkpoint
-- Maximum runtime
-- Maximum iterations
+- 起始检查点
+- 最大运行时间
+- 最大迭代次数
 
-Upon completion, if new data is collected, the action will create a Pull Request with the new data for review and merging.
+完成后，如果收集到新数据，操作将创建一个包含新数据的 Pull Request，供审查和合并。
