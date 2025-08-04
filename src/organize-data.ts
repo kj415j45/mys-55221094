@@ -141,6 +141,8 @@ function saveChunks(chunks: DataRecord[][], outputDir: string): void {
     const floorHigh = Math.max(...floors);
     const filename = `data_${floorLow}-${floorHigh}.json`;
     const filePath = path.join(outputDir, filename);
+    // higher floor is first
+    chunk.sort((a, b) => b.r_floor - a.r_floor);
 
     fs.writeFileSync(filePath, JSON.stringify(chunk, null, 2));
     log.info(`Saved ${chunk.length} records to ${filename} (range: ${floorLow}-${floorHigh})`);
