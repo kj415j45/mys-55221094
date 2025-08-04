@@ -3,7 +3,7 @@ import { taggedLogger } from "./logger";
 import { Client } from "@elastic/elasticsearch";
 import { delay } from "./utils";
 
-const dataDir = './data';
+const dataDir = './data/replies';
 const INDEX_NAME = 'mys_comments';
 const forceWriteIndex = true;
 
